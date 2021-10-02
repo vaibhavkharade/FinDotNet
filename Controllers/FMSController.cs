@@ -199,23 +199,30 @@ namespace FMS.Controllers
         {
             var custId = context.Customer.Where(x => x.UserName == username).FirstOrDefault();
             var Prod = context.Products.Where(y => y.ProductId == prodId).FirstOrDefault();
-            DateTime theDate = DateTime.Now;
-            decimal PFee =  (Prod.Cost) * Convert.ToDecimal(0.02) ; 
-            Orders order = new Orders();
-            order.CustomerId = custId.CustomerId;
-            order.ProductId = prodId;
-            order.PurchasedDate = theDate;
-            order.EmiTenure = emi;
-            order.MonthlyEmi = (Prod.Cost) / emi;
-            order.ProcessingFee = decimal.ToDouble(PFee);
-            order.EmiPaid = 0;
-            order.AmountPaid = 0;
-            context.Orders.Add(order);
-            context.SaveChanges();
+            if (Prod.Cost <= custId.Balance)
+            {
+                DateTime theDate = DateTime.Now;
+                decimal PFee = (Prod.Cost) * Convert.ToDecimal(0.02);
+                Orders order = new Orders();
+                order.CustomerId = custId.CustomerId;
+                order.ProductId = prodId;
+                order.PurchasedDate = theDate;
+                order.EmiTenure = emi;
+                order.MonthlyEmi = (Prod.Cost) / emi;
+                order.ProcessingFee = decimal.ToDouble(PFee);
+                order.EmiPaid = 0;
+                order.AmountPaid = 0;
+                context.Orders.Add(order);
+                context.SaveChanges();
 
 
 
-            return Ok();
+                return Ok();
+            }
+            else
+            {
+                return BadRequest();
+            }
         }
 
         [HttpPut("updatebalance/{prodId}/{username}")]
@@ -224,16 +231,19 @@ namespace FMS.Controllers
         {
             var prod = context.Products.Where(x => x.ProductId == prodId).FirstOrDefault();
             var user = context.Customer.Where(y => y.UserName == username).FirstOrDefault();
-
-            var cost = prod.Cost;
-
-            user.Balance = user.Balance - cost;
-            context.Customer.Update(user);
-            context.SaveChanges();
-
-
             
+            var cost = prod.Cost;
+            
+                user.Balance = user.Balance - cost;
+                context.Customer.Update(user);
+                context.SaveChanges();
             return Ok();
+
+
+
+             
+
+           
 
         }
 
@@ -251,15 +261,25 @@ namespace FMS.Controllers
         public IActionResult updateorderdetails(int OrderId,string UserName)
         {
             var order = context.Orders.Where(x => x.OrderId == OrderId).FirstOrDefault();
+            //var productname = context.Products.Where(x => x.ProductId == order.ProductId).FirstOrDefault();
             order.EmiPaid += 1;
-            order.AmountPaid = Convert.ToDouble(order.EmiPaid) * Convert.ToDouble(order.MonthlyEmi);
-            var customer = context.Customer.Where(y => y.UserName == UserName).FirstOrDefault();
-            customer.Balance = customer.Balance + Convert.ToDecimal(order.MonthlyEmi);
-            context.Orders.Update(order);
-            context.Customer.Update(customer);
-            context.SaveChanges();
+            if (order.EmiPaid <= order.EmiTenure)
+            {
+                order.AmountPaid = Convert.ToDouble(order.EmiPaid) * Convert.ToDouble(order.MonthlyEmi);
+                var customer = context.Customer.Where(y => y.UserName == UserName).FirstOrDefault();
+                customer.Balance = customer.Balance + Convert.ToDecimal(order.MonthlyEmi);
+                context.Orders.Update(order);
+                context.Customer.Update(customer);
+                context.SaveChanges();
 
-            return Ok();
+                return Ok();
+            }
+            else
+            {
+                return BadRequest("you have already paid all emi's");
+            }
+
+            
         }
 
 
