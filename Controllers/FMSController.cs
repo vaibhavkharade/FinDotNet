@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Mail;
 using System.Threading.Tasks;
 
 namespace FMS.Controllers
@@ -110,7 +111,7 @@ namespace FMS.Controllers
             DateTime theDate = DateTime.Now;
             DateTime yearInTheFuture = theDate.AddYears(10);
 
-            if (cust == null)
+            if (cust == null && reguser.Status=="Yes")
             {
                 cust = new Customer();
                 cust.UserName = customer.UserName;
@@ -204,6 +205,7 @@ namespace FMS.Controllers
                 DateTime theDate = DateTime.Now;
                 decimal PFee = (Prod.Cost) * Convert.ToDecimal(0.02);
                 Orders order = new Orders();
+                order.ProductName = Prod.ProductName;
                 order.CustomerId = custId.CustomerId;
                 order.ProductId = prodId;
                 order.PurchasedDate = theDate;
@@ -263,23 +265,78 @@ namespace FMS.Controllers
             var order = context.Orders.Where(x => x.OrderId == OrderId).FirstOrDefault();
             //var productname = context.Products.Where(x => x.ProductId == order.ProductId).FirstOrDefault();
             order.EmiPaid += 1;
-            if (order.EmiPaid <= order.EmiTenure)
+            if (order.EmiPaid <= order.EmiTenure +1)
             {
+                
                 order.AmountPaid = Convert.ToDouble(order.EmiPaid) * Convert.ToDouble(order.MonthlyEmi);
                 var customer = context.Customer.Where(y => y.UserName == UserName).FirstOrDefault();
                 customer.Balance = customer.Balance + Convert.ToDecimal(order.MonthlyEmi);
+                
                 context.Orders.Update(order);
                 context.Customer.Update(customer);
                 context.SaveChanges();
+                
 
                 return Ok();
             }
+            
             else
             {
                 return BadRequest("you have already paid all emi's");
             }
 
             
+        }
+
+
+        [HttpPost("forgotpassword")]
+        public IActionResult ForgotUserlogin(Registration userDetails)
+        {
+            string tomail = userDetails.Email;
+            string subject = "Your OTP";
+            //_context.UserDetails.Add(userDetails);
+            var res = context.Registration.Where(x => x.Email == userDetails.Email).FirstOrDefault();
+
+            if (res != null)
+            {
+                var random = new Random();
+                int code = random.Next(1000, 9999);
+                string Body = "hi heres your OTP as per your request for re-setting password " + code;
+                //codeget = code;
+                SendMail("sush200003@gmail.com", tomail, subject, Body);
+                //status.Add("Success", true);
+                // return Ok(status);
+                return Ok(new { status = true, rnum = code });
+            }
+            else
+            {
+                //status.Add("Success", false);
+                // codeget = -1;
+                //return Ok(status);
+                return Ok(new { status = false, rnum = -1 });
+            }
+            // return CreatedAtAction("GetUserDetails", new { id = userDetails.UserId }, userDetails);
+        }
+        [NonAction]
+        public static void SendMail(string from, string To, String Subject, string Body)
+        {
+            MailMessage mail = new MailMessage(from, To);
+            mail.Subject = Subject;
+            mail.Body = Body;
+
+            //Attachment attachment = new Attachment(@"");
+            //mail.Attachments.Add(attachment);
+            SmtpClient client = new SmtpClient("smtp.gmail.com", 587);
+
+            client.Credentials = new System.Net.NetworkCredential()
+            {
+                UserName = "sush200003@gmail.com",
+                Password = "happinessinfinity"
+
+            };
+            client.EnableSsl = true;
+            client.Send(mail);
+
         }
 
 

@@ -18,6 +18,7 @@ namespace FMS.Models
         public int? EmiPaid { get; set; }
         public double? ProcessingFee { get; set; }
         public double? AmountPaid { get; set; }
+        public string ProductName { get; set; }
 
         public virtual Customer Customer { get; set; }
         public virtual Products Product { get; set; }

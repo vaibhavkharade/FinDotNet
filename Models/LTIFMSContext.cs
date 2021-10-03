@@ -77,6 +77,10 @@ namespace FMS.Models
 
                 entity.Property(e => e.MonthlyEmi).HasColumnType("money");
 
+                entity.Property(e => e.ProductName)
+                    .HasMaxLength(100)
+                    .IsUnicode(false);
+
                 entity.Property(e => e.PurchasedDate).HasColumnType("date");
 
                 entity.HasOne(d => d.Customer)
